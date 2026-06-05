@@ -10,6 +10,7 @@ class Value:
         self._backward = lambda: None
     
     def __add__(self, other):
+        other = other if isinstance(other, Value) else Value(other)
         data = self.data + other.data
         _children =     {self, other}
         _op = '+'
@@ -21,6 +22,7 @@ class Value:
         return out
     
     def __mul__(self, other):
+        other = other if isinstance(other, Value) else Value(other)
         data = self.data * other.data
         _children = {self, other}
         _op = '*'
@@ -32,7 +34,7 @@ class Value:
         out._backward = _backward
 
         return out
-        
+            
     def tanh(self):
         data = (math.e ** self.data - math.e ** (-self.data)) / (math.e ** self.data + math.e ** (-self.data))
         _children = {self}
@@ -71,7 +73,7 @@ class Neuron:
         self.b = Value(0.0)
 
     def __call__(self, x):
-        act = sum((wi * Value(xi) for wi, xi in zip(self.w, x)), self.b)
+        act = sum((wi * xi for wi, xi in zip(self.w, x)), self.b)
         out = act.tanh()
         return out
     
@@ -86,5 +88,22 @@ class Layer:
             out.append(neuron_out)
         return out
 
-a = Layer(3, 4)
+class Multi_Layer_Perceptron:
+    def __init__(self, nin, nouts):
+        sizes = [nin] + nouts
+        shape = zip(sizes[:-1], sizes[1:])
+        multi_layer = []
+        for nini, nouti in shape:
+            multi_layer.append(Layer(nini, nouti))
+        self.layers = multi_layer
+    
+    def __call__(self, x):
+        for layer in self.layers:
+            x = layer(x)
+        return x
+        
+
+
+
+a = Multi_Layer_Perceptron(3, [4, 4, 1])
 print(a([1,2,3]))
