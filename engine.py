@@ -1,3 +1,6 @@
+import math
+import random
+
 class Value:
     def __init__(self, data, _children=(), _op=''):
         self.data = data
@@ -11,7 +14,6 @@ class Value:
         _children =     {self, other}
         _op = '+'
         out = Value(data, _children, _op)
-
         def _backward():
             self.grad += out.grad
             other.grad += out.grad
@@ -31,6 +33,18 @@ class Value:
 
         return out
         
+    def tanh(self):
+        data = (math.e ** self.data - math.e ** (-self.data)) / (math.e ** self.data + math.e ** (-self.data))
+        _children = {self}
+        _op = 'tanh'
+        out = Value(data, _children, _op)
+
+        def _backward():
+            self.grad += (1 - out.data ** 2) * out.grad
+        out._backward = _backward
+
+        return out
+
     def backward(self):
         self.grad = 1.0
         visited = set()
@@ -50,11 +64,27 @@ class Value:
         return f"Value(data={self.data})"
 
 
-a = Value(2.0)
-b = Value(3.0)
-c = a * b
-print(c)
-c.backward()
-print(c.grad)
-print(a.grad)
-print(b.grad)
+
+class Neuron:
+    def __init__(self, nin):
+        self.w = [Value(random.uniform(-1, 1)) for _ in range(nin)]
+        self.b = Value(0.0)
+
+    def __call__(self, x):
+        act = sum((wi * Value(xi) for wi, xi in zip(self.w, x)), self.b)
+        out = act.tanh()
+        return out
+    
+class Layer:
+    def __init__(self, nin, nout):
+        self.neurons = [Neuron(nin) for _ in range(nout)]
+    
+    def __call__(self, x):
+        out = []
+        for neuron in self.neurons:
+            neuron_out = neuron(x)
+            out.append(neuron_out)
+        return out
+
+a = Layer(3, 4)
+print(a([1,2,3]))
